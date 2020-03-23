@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8" name="viewport"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>study</title>
+</head>
+<body style="width: 360px;">
+<div>
+    <div style="padding: 1rem;">
+        <input type="file" name="file" onchange="loadFile(this)"/>
+        <button name="save" onclick="download()"><font size="4rem">保存</font></button>
+    </div>
+    <div style="padding: 1rem">
+        <input type="number" hidden id="id" value="-1"/>
+        <div>
+            <div style="padding: 0.05rem 0.1rem;">
+                <textarea cols="36" rows="3" id="key"></textarea>
+            </div>
+            <div style="padding: 0.05rem 0.1rem;">
+                <textarea cols="36" rows="16" id="value"></textarea>
+            </div>
+        </div>
+        <div class="yesNoButtonDivDiv">
+            <div class="yesNoButtonDiv">
+                <input type="button" name="yes" value="yes" class="yesNoButton" onclick="yes()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="no" value="no" class="yesNoButton" onclick="no()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="show" value="show" class="yesNoButton" onclick="show()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="next" value="next" class="yesNoButton" onclick="showNext()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="edit" value="edit" class="yesNoButton" onclick="edit()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="delelte" value="delelte" class="yesNoButton" onclick="delelte()"/>
+            </div>
+            <div class="yesNoButtonDiv">
+                <input type="button" name="all" value="all" class="yesNoButton" onclick="allItem()"/>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    input {
+        font-size: 0.8rem
+    }
+
+    textarea {
+        font-size: 1.2rem;
+        border: 0.1em solid #0C0C0C;
+    }
+
+    label {
+        font-size: 1.6rem
+    }
+
+    .yesNoButtonDivDiv {
+        padding: 0.01rem 0.5rem;
+    }
+    .yesNoButtonDiv {
+        padding: 0.3rem 0.5rem;
+        float: left
+    }
+    .yesNoButton {
+        width: 5rem;
+        height: 2rem
+    }
+</style>
+<script>
+    var data = [];
+
+    var reader = new FileReader();
+    reader.onloadend = function (ev) {
+        data = JSON.parse(ev.target.result);
+        showNext();
+    };
+
+    var power = 2;
+    var initGap = 5;
+
+    getDataFromLocalStorage();
+    showNext();
+
+    function loadFile(source) {
+        var file = source.files[0];
+        reader.readAsText(file);
+    }
+
+    function download() {
+        var fileName = "a.txt";
+        var text = JSON.stringify(data);
+        downLoadSub(text, fileName);
+    }
+
+    function downLoadSub(text, fileName) {
+        var content = text;
+        var eleLink = document.createElement('a');
+        eleLink.download = fileName;
+        eleLink.style.display = 'none';
+        var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+        eleLink.href = URL.createObjectURL(blob);
+        document.body.appendChild(eleLink);
+        eleLink.click();
+        document.body.removeChild(eleLink);
+    }
+
+    function yes() {
+        var id = document.getElementById("id").value;
+        if (id == null || id < 0) {
+            add();
+            return;
+        }
+        var date = new Date();
+        data[id].gap = (date.getTime() - strToDate(data[id].date).getTime())/1000;
+        data[id].yesTimes++;
+        data[id].totalTimes++;
+        data[id].date = dateToStr(date);
+        showNext();
+
+    }
+
+    function no() {
+        var id = getId();
+        if (id == null || id < 0) {
+            alert("内容为空！");
+            return;
+        }
+        data[id].gap = initGap;
+        data[id].totalTimes++;
+        data[id].date = dateToStr(new Date());
+        showNext();
+    }
+
+    function add() {
+        var key = document.getElementById("key").value;
+        if (!key) {
+            alert("内容为空！");
+            return;
+        }
+        var id = data.length;
+        data[id] = {};
+        data[id].id = id;
+        data[id].key = key;
+        data[id].value = document.getElementById("value").value;
+        data[id].gap = initGap;
+        data[id].totalTimes = 1;
+        data[id].yesTimes = 1;
+        data[id].date = dateToStr(new Date());
+        showNext();
+    }
+
+    function getId() {
+        return document.getElementById("id").value;
+    }
+
+    function show() {
+        var id = getId();
+        if (id == null || id < 0) {
+            alert("内容为空！");
+            return;
+        }
+        document.getElementById("value").value = data[id].value;
+    }
+
+    function showNext() {
+
+        var a = next();
+
+        if (a == null || a < 0) {
+            document.getElementById("id").value = -1;
+            document.getElementById("key").value = null;
+            document.getElementById("key").placeholder = "请输入新的";
+            document.getElementById("value").value = null;
+        } else {
+            var item = data[a];
+            document.getElementById("id").value = item.id;
+            document.getElementById("key").value = item.key;
+            document.getElementById("value").value = null;
+        }
+        setDataFromLocalStorage();
+    }
+
+    function edit() {
+        var key = document.getElementById("key").value;
+        if (!key) {
+            alert("内容为空！");
+            return;
+        }
+        var id = getId();
+        if (id == null || id < 0) {
+            alert("内容为空！");
+            return;
+        }
+        data[id].key = key;
+        data[id].value = document.getElementById("value").value;
+    }
+
+    function delelte() {
+        var id = getId();
+        if (id == null || id < 0) {
+            alert("内容为空！");
+            return;
+        }
+        var idNum = Number(id);
+        data.splice(idNum, 1);
+        for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            item.id = i;
+        }
+    }
+
+    function allItem() {
+        document.getElementById("value").value = JSON.stringify(data);
+    }
+
+    function next() {
+        var max = -1;
+        var maxI = -1;
+        for (var i = 0; i < data.length; i++) {
+            var item = data[i];
+            var lastTime = strToDate(item.date).getTime();
+            var nowTime = new Date().getTime();
+            var deltaTime = (nowTime - lastTime) / 1000;
+
+            var yesRatio = item.yesTimes / item.totalTimes;
+            var powerRatio = yesRatio * yesRatio * (1 + 0.1 * item.yesTimes);
+            var shouldTime = power * powerRatio * item.gap;
+            if (deltaTime < shouldTime) {
+                continue;
+            }
+            var curQuota = deltaTime / shouldTime;
+
+            if (curQuota > max) {
+                max = curQuota;
+                maxI = i;
+            }
+        }
+        return maxI;
+    }
+
+    function getDataFromLocalStorage() {
+        var tData = localStorage.studyData;
+        if (tData == "" || tData == undefined) {
+            data = [];
+        } else {
+            data = JSON.parse(tData);
+        }
+    }
+
+    function setDataFromLocalStorage() {
+        if (data == "" || data == undefined || data.length == 0) {
+            return;
+        }
+        localStorage.studyData = JSON.stringify(data);
+    }
+
+    function dateToStr(date) {
+        var month = date.getMonth() + 1;
+        return date.getFullYear() + "-" + twoZero(month) + "-" + twoZero(date.getDate()) + " "
+            + twoZero(date.getHours()) + ":" + twoZero(date.getMinutes()) + ":" + twoZero(date.getSeconds());
+    }
+
+    function strToDate(dateStr) {
+        var date = new Date();
+        date.setFullYear(dateStr.substring(0, 4));
+        var month = Number(dateStr.substring(5, 7)) - 1;
+        date.setMonth(month);
+        date.setDate(dateStr.substring(8, 10));
+
+        date.setHours(dateStr.substring(11, 13));
+        date.setMinutes(dateStr.substring(14, 16));
+        date.setSeconds(dateStr.substring(17, 19));
+        return date;
+    }
+
+    function twoZero(num) {
+        if (num < 10) {
+            return "0" + num;
+        }
+        return num;
+    }
+</script>
+</body>
+</html>
